@@ -45,13 +45,13 @@ export async function ingestSentHistory(limit = 500): Promise<number> {
 export function startInboundListener(): () => void {
   const mod = getModule();
   if (!mod) return () => undefined;
-  const emitter = new NativeEventEmitter(
-    NativeModules.EnvoySms as typeof NativeModules[string],
-  );
+  const emitter = new NativeEventEmitter(NativeModules.EnvoySms);
   const sub = emitter.addListener(
     "envoy_sms_received",
     (event: { from: string; body: string }) => {
-      void api.simulateInbound(event.from, event.body);
+      api.simulateInbound(event.from, event.body).catch((e) => {
+        console.warn("Failed to forward inbound SMS to backend:", e);
+      });
     },
   );
   return () => sub.remove();

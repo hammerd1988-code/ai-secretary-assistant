@@ -32,9 +32,11 @@ export function OnboardingScreen({ onComplete }: Props) {
   const [personaName, setPersonaName] = useState("Alex");
   const [voice, setVoice] = useState("shimmer");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const finish = async () => {
     setSaving(true);
+    setError(null);
     try {
       await api.saveSettings({
         userId: api.userId,
@@ -52,6 +54,8 @@ export function OnboardingScreen({ onComplete }: Props) {
       }
       setStep("done");
       onComplete();
+    } catch (e) {
+      setError(`Could not save settings: ${String(e)}`);
     } finally {
       setSaving(false);
     }
@@ -180,6 +184,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           <Pressable style={styles.cta} disabled={saving} onPress={() => void finish()}>
             <Text style={styles.ctaText}>{saving ? "Saving…" : "Finish"}</Text>
           </Pressable>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
         </View>
       )}
     </ScrollView>
@@ -219,4 +224,5 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   ctaText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  error: { color: colors.danger, marginTop: 12, textAlign: "center" },
 });
