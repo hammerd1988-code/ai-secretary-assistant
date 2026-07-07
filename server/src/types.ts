@@ -75,6 +75,8 @@ export interface CallSummary {
   reason?: string;
   urgency: "low" | "medium" | "high";
   callbackRequested: boolean;
+  messageForUser?: string;
+  bookedEventId?: string;
   transcript: string;
   createdAt: string;
 }
@@ -84,6 +86,7 @@ export interface UserSettings {
   autonomy: AutonomyLevel;
   fullAutoContacts: string[];
   voiceEnabled: boolean;
+  busyMode: boolean;
   personaId?: string;
 }
 
