@@ -46,7 +46,15 @@ def run_server(port: int = 8080) -> None:
     voice = VoiceHandler(settings)
 
     @app.route("/sms/inbound", methods=["POST"])
-    def sms_inbound() -> Response:
+def sms_inbound() -> Response:
+        from twilio.request_validator import RequestValidator
+
+        validator = RequestValidator(settings.twilio_auth_token)
+        signature = request.headers.get("X-Twilio-Signature", "")
+        if not validator.validate(request.url, request.form, signature):
+            logger.warning("Rejected SMS webhook with invalid Twilio signature")
+            return Response("Forbidden", status=403)
+
         payload = SMSHandler.parse_inbound(request.form)
         caller = payload["from"]
         body = payload["body"]
