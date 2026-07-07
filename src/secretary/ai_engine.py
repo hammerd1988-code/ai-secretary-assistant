@@ -70,7 +70,10 @@ class AIEngine:
         }
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
-        response = self._client.chat.completions.create(**kwargs)
+response = self._client.chat.completions.create(**kwargs)
+        if not getattr(response, "choices", None):
+            logger.warning("OpenAI response had no choices")
+            return ""
         return response.choices[0].message.content or ""
 
     def triage_message(self, message: str) -> TriageResult:
