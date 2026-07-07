@@ -1,0 +1,1 @@
+"""AI Secretary Assistant package."""
