@@ -78,6 +78,21 @@ export const api = {
     request<CalendarEvent>(`/events/${id}/confirm`, { method: "POST" }),
   cancelEvent: (id: string) =>
     request<CalendarEvent>(`/events/${id}/cancel`, { method: "POST" }),
+  savePersona: (persona: {
+    name: string;
+    voice: string;
+    greeting: string;
+    instructions: string;
+  }) =>
+    request(`/persona`, {
+      method: "PUT",
+      body: JSON.stringify({ userId: USER_ID, ...persona }),
+    }),
+  ingestStyle: (sentMessages: Array<{ inbound?: string; reply: string }>) =>
+    request(`/style/ingest`, {
+      method: "POST",
+      body: JSON.stringify({ userId: USER_ID, sentMessages }),
+    }),
   simulateInbound: (from: string, body: string) =>
     request(`/messages/inbound`, {
       method: "POST",
