@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Envoy",
+    "slug": "envoy-ai-secretary",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "platforms": ["android", "ios"],
+    "android": {
+      "package": "com.envoy.secretary",
+      "permissions": ["READ_SMS", "RECEIVE_SMS", "SEND_SMS", "READ_CONTACTS"]
+    },
+    "ios": {
+      "bundleIdentifier": "com.envoy.secretary"
+    }
+  }
+}
