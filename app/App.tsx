@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -11,19 +11,35 @@ import { InboxScreen } from "./src/screens/InboxScreen";
 import { ApprovalsScreen } from "./src/screens/ApprovalsScreen";
 import { CallsScreen } from "./src/screens/CallsScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
+import { OnboardingScreen } from "./src/screens/OnboardingScreen";
+import { StyleScreen } from "./src/screens/StyleScreen";
+import { startInboundListener } from "./src/sms";
 import { colors } from "./src/theme";
 
-type Tab = "inbox" | "approvals" | "calls" | "settings";
+type Tab = "inbox" | "approvals" | "style" | "calls" | "settings";
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: "inbox", label: "Inbox" },
   { key: "approvals", label: "Approvals" },
+  { key: "style", label: "Style" },
   { key: "calls", label: "Calls" },
   { key: "settings", label: "Settings" },
 ];
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("inbox");
+  const [onboarded, setOnboarded] = useState(false);
+
+  useEffect(() => startInboundListener(), []);
+
+  if (!onboarded) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
+        <OnboardingScreen onComplete={() => setOnboarded(true)} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.root}>
@@ -35,6 +51,7 @@ export default function App() {
       <View style={styles.body}>
         {tab === "inbox" && <InboxScreen />}
         {tab === "approvals" && <ApprovalsScreen />}
+        {tab === "style" && <StyleScreen />}
         {tab === "calls" && <CallsScreen />}
         {tab === "settings" && <SettingsScreen />}
       </View>
