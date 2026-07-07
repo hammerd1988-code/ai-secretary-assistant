@@ -82,20 +82,26 @@ response = self._client.chat.completions.create(**kwargs)
 
         system = _TRIAGE_SYSTEM_PROMPT.format(name=self._settings.secretary_name)
         raw = self._chat(system, message, json_mode=True)
-        try:
+try:
             data = json.loads(raw)
-            return TriageResult(
-                priority=Priority(data.get("priority", "informational")),
-                summary=data.get("summary", ""),
-                suggested_reply=data.get("suggested_reply", ""),
-            )
-        except (json.JSONDecodeError, ValueError) as exc:
-            logger.warning("Failed to parse triage response: %s", exc)
+        except json.JSONDecodeError as exc:
+            logger.warning("Failed to parse triage response JSON: %s", exc)
             return TriageResult(
                 priority=Priority.INFORMATIONAL,
                 summary="(could not parse AI response)",
                 suggested_reply="",
             )
+
+        try:
+            priority = Priority(data.get("priority", "informational"))
+        except ValueError:
+            priority = Priority.INFORMATIONAL
+
+        return TriageResult(
+            priority=priority,
+            summary=data.get("summary", ""),
+            suggested_reply=data.get("suggested_reply", ""),
+        )
 
     def draft_reply(self, incoming_message: str) -> str:
         """Draft a standalone reply to a message."""
