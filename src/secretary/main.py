@@ -72,7 +72,15 @@ def sms_inbound() -> Response:
         return Response(twiml, content_type="text/xml")
 
     @app.route("/voice/gather", methods=["POST"])
-    def voice_gather() -> Response:
+def voice_gather() -> Response:
+        from twilio.request_validator import RequestValidator
+
+        validator = RequestValidator(settings.twilio_auth_token)
+        signature = request.headers.get("X-Twilio-Signature", "")
+        if not validator.validate(request.url, request.form, signature):
+            logger.warning("Rejected voice gather webhook with invalid Twilio signature")
+            return Response("Forbidden", status=403)
+
         caller_speech = request.form.get("SpeechResult", "")
         caller = request.form.get("From", "unknown")
         logger.info("Caller %s said: %r", caller, caller_speech)
@@ -80,7 +88,6 @@ def sms_inbound() -> Response:
         spoken_reply = ai.voice_response(caller_speech)
         twiml = voice.reply_twiml(spoken_reply)
         return Response(twiml, content_type="text/xml")
-
     @app.route("/voice/recording", methods=["POST"])
     def voice_recording() -> Response:
         transcription = request.form.get("TranscriptionText", "(no transcription)")
