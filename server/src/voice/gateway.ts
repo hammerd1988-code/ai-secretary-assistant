@@ -24,6 +24,7 @@ export class VoiceBridge {
   private persona: Persona;
   private busyMode: boolean;
   private bookedEventIds: string[] = [];
+  private pendingBookings: Promise<void>[] = [];
 
   constructor(
     twilioSocket: WebSocket,
@@ -196,7 +197,9 @@ user's private information.`;
         break;
       case "response.function_call_arguments.done":
         if (event.name === "book_appointment" && event.call_id) {
-          void this.onBookAppointment(event.call_id, event.arguments ?? "{}");
+          this.pendingBookings.push(
+            this.onBookAppointment(event.call_id, event.arguments ?? "{}"),
+          );
         }
         break;
       case "input_audio_buffer.speech_started":
@@ -245,13 +248,17 @@ user's private information.`;
         note: "Couldn't book it — confirm the date and time with the caller and try again.",
       });
     }
-    this.openai?.send(
-      JSON.stringify({
-        type: "conversation.item.create",
-        item: { type: "function_call_output", call_id: callId, output },
-      }),
-    );
-    this.openai?.send(JSON.stringify({ type: "response.create" }));
+    this.sendOpenAI({
+      type: "conversation.item.create",
+      item: { type: "function_call_output", call_id: callId, output },
+    });
+    this.sendOpenAI({ type: "response.create" });
+  }
+
+  private sendOpenAI(payload: unknown): void {
+    if (this.openai?.readyState === WebSocket.OPEN) {
+      this.openai.send(JSON.stringify(payload));
+    }
   }
 
   private closed = false;
@@ -265,6 +272,7 @@ user's private information.`;
   }
 
   private async summarize(): Promise<void> {
+    await Promise.allSettled(this.pendingBookings);
     const transcript = this.transcript.join("\n");
     if (!transcript) return;
     const schema = z.object({

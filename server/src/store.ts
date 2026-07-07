@@ -141,6 +141,58 @@ class SupabaseStore extends MemoryStore {
     });
   }
 
+  override async getSettings(userId: string): Promise<UserSettings> {
+    const { data } = await this.client
+      .from("user_settings")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!data) return super.getSettings(userId);
+    return {
+      userId,
+      autonomy: data.autonomy,
+      fullAutoContacts: data.full_auto_contacts ?? [],
+      voiceEnabled: data.voice_enabled ?? false,
+      busyMode: data.busy_mode ?? false,
+      personaId: data.persona_id ?? undefined,
+    };
+  }
+
+  override async saveSettings(settings: UserSettings): Promise<void> {
+    await super.saveSettings(settings);
+    await this.client.from("user_settings").upsert({
+      user_id: settings.userId,
+      autonomy: settings.autonomy,
+      full_auto_contacts: settings.fullAutoContacts,
+      voice_enabled: settings.voiceEnabled,
+      busy_mode: settings.busyMode,
+      persona_id: settings.personaId ?? null,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  override async listCallSummaries(userId: string): Promise<CallSummary[]> {
+    const { data } = await this.client
+      .from("call_summaries")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (!data || data.length === 0) return super.listCallSummaries(userId);
+    return data.map((row) => ({
+      id: row.id,
+      userId: row.user_id,
+      callerNumber: row.caller_number,
+      callerName: row.caller_name ?? undefined,
+      reason: row.reason ?? undefined,
+      urgency: row.urgency,
+      callbackRequested: row.callback_requested,
+      messageForUser: row.message_for_user ?? undefined,
+      bookedEventId: row.booked_event_id ?? undefined,
+      transcript: row.transcript,
+      createdAt: row.created_at,
+    }));
+  }
+
   override async saveCallSummary(summary: CallSummary): Promise<void> {
     await super.saveCallSummary(summary);
     await this.client.from("call_summaries").upsert({
