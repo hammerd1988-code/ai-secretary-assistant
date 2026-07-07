@@ -89,7 +89,15 @@ def voice_gather() -> Response:
         twiml = voice.reply_twiml(spoken_reply)
         return Response(twiml, content_type="text/xml")
     @app.route("/voice/recording", methods=["POST"])
-    def voice_recording() -> Response:
+def voice_recording() -> Response:
+        from twilio.request_validator import RequestValidator
+
+        validator = RequestValidator(settings.twilio_auth_token)
+        signature = request.headers.get("X-Twilio-Signature", "")
+        if not validator.validate(request.url, request.form, signature):
+            logger.warning("Rejected voice recording webhook with invalid Twilio signature")
+            return Response("Forbidden", status=403)
+
         transcription = request.form.get("TranscriptionText", "(no transcription)")
         caller = request.form.get("From", "unknown")
         logger.info("Recording from %s: %r", caller, transcription)
