@@ -35,6 +35,7 @@ const DEFAULT_SETTINGS = (userId: string): UserSettings => ({
   autonomy: "suggest",
   fullAutoContacts: [],
   voiceEnabled: false,
+  busyMode: false,
 });
 
 class MemoryStore implements Store {
@@ -150,6 +151,8 @@ class SupabaseStore extends MemoryStore {
       reason: summary.reason ?? null,
       urgency: summary.urgency,
       callback_requested: summary.callbackRequested,
+      message_for_user: summary.messageForUser ?? null,
+      booked_event_id: summary.bookedEventId ?? null,
       transcript: summary.transcript,
       created_at: summary.createdAt,
     });

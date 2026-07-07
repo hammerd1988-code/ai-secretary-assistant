@@ -4,12 +4,16 @@ import { config } from "../config.js";
 import { store } from "../store.js";
 import { completeJSON } from "../llm.js";
 import { z } from "zod";
-import type { Persona } from "../types.js";
+import type { CalendarEvent, Persona } from "../types.js";
 
 /**
  * Bridges a Twilio Media Stream (G.711 u-law, 8kHz) to the OpenAI Realtime
  * API for speech-to-speech conversation. One instance per live call.
  */
+export interface VoiceBridgeOptions {
+  busyMode?: boolean;
+}
+
 export class VoiceBridge {
   private twilio: WebSocket;
   private openai?: WebSocket;
@@ -18,17 +22,21 @@ export class VoiceBridge {
   private userId: string;
   private callerNumber: string;
   private persona: Persona;
+  private busyMode: boolean;
+  private bookedEventIds: string[] = [];
 
   constructor(
     twilioSocket: WebSocket,
     userId: string,
     callerNumber: string,
     persona: Persona,
+    options: VoiceBridgeOptions = {},
   ) {
     this.twilio = twilioSocket;
     this.userId = userId;
     this.callerNumber = callerNumber;
     this.persona = persona;
+    this.busyMode = options.busyMode ?? false;
     this.twilio.on("message", (data) => this.onTwilioMessage(data));
     this.twilio.on("close", () => this.teardown());
   }
@@ -56,6 +64,32 @@ export class VoiceBridge {
             input_audio_transcription: { model: "whisper-1" },
             turn_detection: { type: "server_vad" },
             instructions: this.buildInstructions(),
+            tools: [
+              {
+                type: "function",
+                name: "book_appointment",
+                description:
+                  "Add an appointment to the user's calendar once the caller has agreed on what it's for and when. Use ISO 8601 date-times.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    startsAt: {
+                      type: "string",
+                      description: "ISO 8601 start date-time",
+                    },
+                    endsAt: {
+                      type: "string",
+                      description: "ISO 8601 end date-time (optional)",
+                    },
+                    location: { type: "string" },
+                    notes: { type: "string" },
+                  },
+                  required: ["title", "startsAt"],
+                },
+              },
+            ],
+            tool_choice: "auto",
           },
         }),
       );
@@ -75,8 +109,14 @@ export class VoiceBridge {
   }
 
   private buildInstructions(): string {
+    const busyBlock = this.busyMode
+      ? `\nThe user is busy right now and can't take the call. Early in the
+conversation, casually let the caller know ("they're tied up at the moment,
+but I can help") — don't apologize repeatedly. Focus on capturing anything
+important they'd like passed along.`
+      : "";
     return `${this.persona.instructions}
-You are ${this.persona.name}, a phone assistant answering on behalf of the user.
+You are ${this.persona.name}, a phone assistant answering on behalf of the user.${busyBlock}
 Sound like a real, down-to-earth person on the phone — never like a bot:
 - Talk casually and warmly, the way a friendly coworker would. Use natural
   spoken rhythm: short sentences, contractions ("I'll", "he's"), and the
@@ -86,9 +126,17 @@ Sound like a real, down-to-earth person on the phone — never like a bot:
   caller can jump in.
 - Never use corporate or robotic phrasing ("your call is important",
   "I am processing your request"). No lists, no monologues.
-Goals: learn the caller's name, the reason for the call, its urgency, and
-whether they want a callback. If asked whether you are an AI, answer honestly
-and casually. Do not share the user's private information.`;
+Goals:
+- Learn the caller's name, the reason for the call, its urgency, and whether
+  they want a callback.
+- If the caller wants to set up an appointment or meeting, casually pin down
+  what it's for and when, then call the book_appointment tool and confirm out
+  loud ("cool, I've got you down for Friday at 2").
+- Before wrapping up, ask if there's anything they'd like passed along to the
+  user, and make sure you've captured it.
+Today's date-time is ${new Date().toISOString()}.
+If asked whether you are an AI, answer honestly and casually. Do not share the
+user's private information.`;
   }
 
   private onTwilioMessage(data: WebSocket.RawData): void {
@@ -123,6 +171,9 @@ and casually. Do not share the user's private information.`;
       type: string;
       delta?: string;
       transcript?: string;
+      name?: string;
+      call_id?: string;
+      arguments?: string;
     };
     switch (event.type) {
       case "response.audio.delta":
@@ -143,6 +194,11 @@ and casually. Do not share the user's private information.`;
         if (event.transcript)
           this.transcript.push(`${this.persona.name}: ${event.transcript}`);
         break;
+      case "response.function_call_arguments.done":
+        if (event.name === "book_appointment" && event.call_id) {
+          void this.onBookAppointment(event.call_id, event.arguments ?? "{}");
+        }
+        break;
       case "input_audio_buffer.speech_started":
         // Barge-in: caller started talking — clear queued assistant audio.
         this.twilio.send(
@@ -150,6 +206,52 @@ and casually. Do not share the user's private information.`;
         );
         break;
     }
+  }
+
+  private async onBookAppointment(callId: string, args: string): Promise<void> {
+    const schema = z.object({
+      title: z.string(),
+      startsAt: z.string(),
+      endsAt: z.string().optional(),
+      location: z.string().optional(),
+      notes: z.string().optional(),
+    });
+    let output: string;
+    try {
+      const parsed = schema.parse(JSON.parse(args));
+      const calEvent: CalendarEvent = {
+        id: randomUUID(),
+        userId: this.userId,
+        title: parsed.title,
+        startsAt: parsed.startsAt,
+        endsAt: parsed.endsAt,
+        location: parsed.location,
+        notes: parsed.notes,
+        attendees: [],
+        status: "proposed",
+      };
+      await store.saveEvent(calEvent);
+      this.bookedEventIds.push(calEvent.id);
+      this.transcript.push(
+        `[system] Appointment penciled in: ${parsed.title} at ${parsed.startsAt}`,
+      );
+      output = JSON.stringify({
+        ok: true,
+        note: "Appointment penciled in; the user will see it for confirmation.",
+      });
+    } catch {
+      output = JSON.stringify({
+        ok: false,
+        note: "Couldn't book it — confirm the date and time with the caller and try again.",
+      });
+    }
+    this.openai?.send(
+      JSON.stringify({
+        type: "conversation.item.create",
+        item: { type: "function_call_output", call_id: callId, output },
+      }),
+    );
+    this.openai?.send(JSON.stringify({ type: "response.create" }));
   }
 
   private closed = false;
@@ -170,11 +272,12 @@ and casually. Do not share the user's private information.`;
       reason: z.string().optional(),
       urgency: z.enum(["low", "medium", "high"]),
       callbackRequested: z.boolean(),
+      messageForUser: z.string().optional(),
     });
     try {
       const raw = await completeJSON<unknown>({
         system: `Summarize this phone call transcript. Respond with JSON:
-{"callerName": string (optional), "reason": string, "urgency": "low"|"medium"|"high", "callbackRequested": bool}`,
+{"callerName": string (optional), "reason": string, "urgency": "low"|"medium"|"high", "callbackRequested": bool, "messageForUser": string (optional — anything the caller asked to pass along to the user, in the caller's words)}`,
         user: transcript,
         schemaName: "call-summary",
       });
@@ -187,6 +290,8 @@ and casually. Do not share the user's private information.`;
         reason: parsed.reason,
         urgency: parsed.urgency,
         callbackRequested: parsed.callbackRequested,
+        messageForUser: parsed.messageForUser,
+        bookedEventId: this.bookedEventIds[0],
         transcript,
         createdAt: new Date().toISOString(),
       });
@@ -197,6 +302,7 @@ and casually. Do not share the user's private information.`;
         callerNumber: this.callerNumber,
         urgency: "medium",
         callbackRequested: false,
+        bookedEventId: this.bookedEventIds[0],
         transcript,
         createdAt: new Date().toISOString(),
       });
