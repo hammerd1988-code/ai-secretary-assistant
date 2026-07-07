@@ -75,9 +75,15 @@ export const api = {
       body: JSON.stringify({ action, editedBody, inboundBody, userId: USER_ID }),
     }),
   confirmEvent: (id: string) =>
-    request<CalendarEvent>(`/events/${id}/confirm`, { method: "POST" }),
+    request<CalendarEvent>(`/events/${id}/confirm`, {
+      method: "POST",
+      body: JSON.stringify({ userId: USER_ID }),
+    }),
   cancelEvent: (id: string) =>
-    request<CalendarEvent>(`/events/${id}/cancel`, { method: "POST" }),
+    request<CalendarEvent>(`/events/${id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ userId: USER_ID }),
+    }),
   savePersona: (persona: {
     name: string;
     voice: string;

@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -10,6 +11,7 @@ import { VoiceBridge, twimlForIncomingCall } from "./voice/gateway.js";
 import type { Persona } from "./types.js";
 
 const app = Fastify({ logger: true });
+await app.register(cors, { origin: true });
 await app.register(websocket);
 
 app.get("/health", async () => ({ ok: true }));

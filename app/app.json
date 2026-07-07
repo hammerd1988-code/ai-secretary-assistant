@@ -5,7 +5,7 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "platforms": ["android", "ios"],
+    "platforms": ["android", "ios", "web"],
     "android": {
       "package": "com.envoy.secretary",
       "permissions": ["READ_SMS", "RECEIVE_SMS", "SEND_SMS", "READ_CONTACTS"]
