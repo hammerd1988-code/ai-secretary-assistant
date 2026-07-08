@@ -131,6 +131,7 @@ const settingsSchema = z.object({
   autonomy: z.enum(["suggest", "auto_review", "full_auto"]),
   fullAutoContacts: z.array(z.string()).default([]),
   voiceEnabled: z.boolean().default(false),
+  busyMode: z.boolean().default(false),
   personaId: z.string().optional(),
 });
 
@@ -178,7 +179,10 @@ app.get("/voice/stream/:userId", { websocket: true }, async (socket, request) =>
     greeting: "Hi, this is Alex, the assistant. How can I help you today?",
     instructions: "",
   };
-  new VoiceBridge(socket, userId, "unknown", persona);
+  const settings = await store.getSettings(userId);
+  new VoiceBridge(socket, userId, "unknown", persona, {
+    busyMode: settings.busyMode,
+  });
 });
 
 app.get("/calls", async (request) => {

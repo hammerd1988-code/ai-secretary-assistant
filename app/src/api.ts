@@ -33,6 +33,8 @@ export interface CallSummary {
   reason?: string;
   urgency: "low" | "medium" | "high";
   callbackRequested: boolean;
+  messageForUser?: string;
+  bookedEventId?: string;
   createdAt: string;
 }
 
@@ -41,6 +43,7 @@ export interface UserSettings {
   autonomy: "suggest" | "auto_review" | "full_auto";
   fullAutoContacts: string[];
   voiceEnabled: boolean;
+  busyMode: boolean;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

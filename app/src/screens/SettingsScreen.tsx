@@ -90,6 +90,23 @@ export function SettingsScreen() {
           trackColor={{ true: colors.accent }}
         />
       </View>
+
+      {settings.voiceEnabled ? (
+        <View style={[styles.row, { marginTop: 8 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.optionLabel}>I'm busy mode</Text>
+            <Text style={styles.hint}>
+              Your AI tells callers you're tied up right now, takes down
+              anything important, and passes the message along to you.
+            </Text>
+          </View>
+          <Switch
+            value={settings.busyMode}
+            onValueChange={(v) => void update({ busyMode: v })}
+            trackColor={{ true: colors.warn }}
+          />
+        </View>
+      ) : null}
     </ScrollView>
   );
 }

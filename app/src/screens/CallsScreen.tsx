@@ -57,6 +57,17 @@ export function CallsScreen() {
             </Text>
           </View>
           {item.reason ? <Text style={styles.body}>{item.reason}</Text> : null}
+          {item.messageForUser ? (
+            <View style={styles.relay}>
+              <Text style={styles.relayLabel}>MESSAGE FOR YOU</Text>
+              <Text style={styles.body}>{item.messageForUser}</Text>
+            </View>
+          ) : null}
+          {item.bookedEventId ? (
+            <Text style={styles.booked}>
+              Appointment penciled in — review it in Approvals
+            </Text>
+          ) : null}
           {item.callbackRequested ? (
             <Text style={styles.callback}>Callback requested</Text>
           ) : null}
@@ -86,5 +97,15 @@ const styles = StyleSheet.create({
   urgency: { fontSize: 11, fontWeight: "700" },
   body: { color: colors.text, marginTop: 6 },
   callback: { color: colors.warn, marginTop: 6, fontWeight: "600" },
+  booked: { color: colors.accent, marginTop: 6, fontWeight: "600" },
+  relay: {
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bg,
+  },
+  relayLabel: { color: colors.warn, fontSize: 10, fontWeight: "700" },
   time: { color: colors.textDim, fontSize: 12, marginTop: 6 },
 });
