@@ -43,6 +43,7 @@ export function OnboardingScreen({ onComplete }: Props) {
         autonomy,
         fullAutoContacts: [],
         voiceEnabled,
+        busyMode: false,
       });
       if (voiceEnabled) {
         await api.savePersona({
