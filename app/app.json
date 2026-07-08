@@ -2,16 +2,45 @@
   "expo": {
     "name": "Envoy",
     "slug": "envoy-ai-secretary",
+    "scheme": "envoy",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
     "platforms": ["android", "ios", "web"],
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0d1117"
+    },
+    "assetBundlePatterns": ["**/*"],
     "android": {
       "package": "com.envoy.secretary",
-      "permissions": ["READ_SMS", "RECEIVE_SMS", "SEND_SMS", "READ_CONTACTS"]
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0d1117"
+      },
+      "permissions": [],
+      "blockedPermissions": [
+        "android.permission.READ_SMS",
+        "android.permission.RECEIVE_SMS",
+        "android.permission.SEND_SMS",
+        "android.permission.READ_CONTACTS"
+      ]
     },
     "ios": {
-      "bundleIdentifier": "com.envoy.secretary"
+      "bundleIdentifier": "com.envoy.secretary",
+      "buildNumber": "1",
+      "supportsTablet": true
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
     }
   }
 }
