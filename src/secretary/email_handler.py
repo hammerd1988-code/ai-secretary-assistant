@@ -83,7 +83,7 @@ class EmailHandler:
         msg = MIMEText(body, "plain")
         msg["From"] = self._settings.email_address
         msg["To"] = to_address
-        msg["Subject"] = subject if subject.startswith("Re:") else f"Re: {subject}"
+msg["Subject"] = subject if subject.lower().startswith("re:") else f"Re: {subject}"
         if in_reply_to:
             msg["In-Reply-To"] = in_reply_to
             msg["References"] = in_reply_to
