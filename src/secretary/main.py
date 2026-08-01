@@ -66,11 +66,18 @@ def sms_inbound() -> Response:
         return Response("", status=204)
 
     @app.route("/voice/inbound", methods=["POST"])
-    def voice_inbound() -> Response:
+def voice_inbound() -> Response:
+        from twilio.request_validator import RequestValidator
+
+        validator = RequestValidator(settings.twilio_auth_token)
+        signature = request.headers.get("X-Twilio-Signature", "")
+        if not validator.validate(request.url, request.form, signature):
+            logger.warning("Rejected voice inbound webhook with invalid Twilio signature")
+            return Response("Forbidden", status=403)
+
         action_url = request.url_root.rstrip("/") + "/voice/gather"
         twiml = voice.greeting_twiml(action_url)
         return Response(twiml, content_type="text/xml")
-
     @app.route("/voice/gather", methods=["POST"])
 def voice_gather() -> Response:
         from twilio.request_validator import RequestValidator
