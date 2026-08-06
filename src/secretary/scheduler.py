@@ -29,8 +29,8 @@ class SecretaryScheduler:
         logger.info("Polling inbox…")
         try:
             messages = self._email.fetch_unread()
-        except Exception as exc:
-            logger.error("Failed to fetch emails: %s", exc)
+        except Exception:
+            logger.exception("Failed to fetch emails")
             return
 
         for msg in messages:
@@ -61,8 +61,8 @@ class SecretaryScheduler:
                     )
 
                 self._email.mark_as_read(msg.uid)
-            except Exception as exc:
-                logger.error("Error processing email uid=%s: %s", msg.uid, exc)
+            except Exception:
+                logger.exception("Error processing email uid=%s", msg.uid)
 
     def run_blocking(self) -> None:
         """Start a blocking scheduler (runs in the foreground)."""
