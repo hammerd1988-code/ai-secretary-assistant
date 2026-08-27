@@ -1,0 +1,14 @@
+{
+  "name": "Envoy AI Secretary",
+  "install": "cd server && npm install && cd ../app && npm install",
+  "terminals": [
+    {
+      "name": "server",
+      "command": "cd server && [ -f .env ] || cp .env.example .env && npm run dev"
+    },
+    {
+      "name": "app-web",
+      "command": "cd app && EXPO_PUBLIC_API_URL=http://localhost:8787 npx expo start --web"
+    }
+  ]
+}
