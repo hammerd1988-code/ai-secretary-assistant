@@ -8,6 +8,7 @@ import { store } from "./store.js";
 import { processMessage } from "./pipeline/process.js";
 import { buildStyleProfile, recordEditFeedback } from "./style/styleEngine.js";
 import { VoiceBridge, twimlForIncomingCall } from "./voice/gateway.js";
+import { isValidTwilioSignature } from "./voice/twilio.js";
 import type { Persona } from "./types.js";
 
 const app = Fastify({ logger: true });
@@ -160,6 +161,16 @@ app.put("/persona", async (request) => {
 
 app.post("/voice/incoming/:userId", async (request, reply) => {
   const { userId } = z.object({ userId: z.string() }).parse(request.params);
+  if (config.twilioAuthToken) {
+    const signature = request.headers["x-twilio-signature"] as
+      | string
+      | undefined;
+    const url = `${config.publicBaseUrl}${request.raw.url}`;
+    const params = (request.body ?? {}) as Record<string, string>;
+    if (!isValidTwilioSignature(signature, url, params)) {
+      return reply.code(403).send({ error: "invalid Twilio signature" });
+    }
+  }
   const settings = await store.getSettings(userId);
   if (!settings.voiceEnabled) {
     return reply
@@ -171,6 +182,16 @@ app.post("/voice/incoming/:userId", async (request, reply) => {
 
 app.get("/voice/stream/:userId", { websocket: true }, async (socket, request) => {
   const { userId } = z.object({ userId: z.string() }).parse(request.params);
+  if (config.twilioAuthToken) {
+    const signature = request.headers["x-twilio-signature"] as
+      | string
+      | undefined;
+    const url = `${config.publicBaseUrl}${request.raw.url}`;
+    if (!isValidTwilioSignature(signature, url)) {
+      socket.close(1008, "invalid Twilio signature");
+      return;
+    }
+  }
   const persona: Persona = (await store.getPersona(userId)) ?? {
     id: "default",
     userId,

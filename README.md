@@ -68,6 +68,21 @@ back to an in-memory store for local development.
 
 ## Voice module (optional)
 
+Environment variables (see `server/.env.example`):
+
+| Variable | Required | Where to get it |
+|----------|----------|-----------------|
+| `OPENAI_API_KEY` | Yes | platform.openai.com → API keys |
+| `TWILIO_AUTH_TOKEN` | For voice | Twilio Console → Account Info → Auth Token |
+| `PUBLIC_BASE_URL` | For voice | Public URL of this server (ngrok/tunnel URL in dev) |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Optional | Supabase project → Settings → API (falls back to in-memory store if unset) |
+
+No `TWILIO_ACCOUNT_SID` is needed — the server only receives Twilio webhooks; it
+never calls the Twilio REST API.
+
 1. Buy a Twilio number; set its Voice webhook to `POST {PUBLIC_BASE_URL}/voice/incoming/{userId}`.
 2. User enables conditional call forwarding (busy/no-answer) from their real number to the Twilio number.
 3. Calls stream via Twilio Media Streams to the OpenAI Realtime API (speech-to-speech, G.711 u-law) with barge-in support; a post-call summary lands in the app's Calls tab.
+
+When `TWILIO_AUTH_TOKEN` is set, incoming Twilio webhook and media-stream
+requests are validated against the `X-Twilio-Signature` header.
