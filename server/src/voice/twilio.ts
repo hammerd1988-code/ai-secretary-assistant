@@ -23,7 +23,7 @@ export function isValidTwilioSignature(
     .update(Buffer.from(data, "utf-8"))
     .digest("base64");
 
-  const a = Buffer.from(expected);
-  const b = Buffer.from(signature);
+  const a = Buffer.from(expected, "base64");
+  const b = Buffer.from(signature, "base64");
   return a.length === b.length && timingSafeEqual(a, b);
 }
