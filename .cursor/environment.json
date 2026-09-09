@@ -4,7 +4,7 @@
   "terminals": [
     {
       "name": "server",
-      "command": "cd server && [ -f .env ] || cp .env.example .env && npm run dev"
+      "command": "cd server && ([ -f .env ] || cp .env.example .env) && npm run dev"
     },
     {
       "name": "app-web",
